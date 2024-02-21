@@ -3,6 +3,7 @@ package com.sunnyweather.android.ui.place
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +15,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.sunnyweather.android.LogUtil.LogUtil
+import com.sunnyweather.android.MainActivity
 import com.sunnyweather.android.databinding.FragmentPlaceBinding
 import com.sunnyweather.android.ui.weather.WeatherActivity
 
@@ -39,18 +42,6 @@ class PlaceFragment : Fragment() {
             override fun onCreate(owner: LifecycleOwner) {
                 super.onCreate(owner)
 
-                if (viewModel.isPlaceSaved()) {
-                    val place = viewModel.getSavedPlace()
-                    val intent = Intent(context, WeatherActivity::class.java).apply {
-                        putExtra("location_lng", place.location.lng)
-                        putExtra("location_lat", place.location.lat)
-                        putExtra("place_name", place.name)
-                    }
-                    startActivity(intent)
-                    activity?.finish()
-                    return
-                }
-
                 val layoutManager = LinearLayoutManager(requireActivity())
                 placeBinding.recyclerView.layoutManager = layoutManager
                 adapter = PlaceAdapter(this@PlaceFragment, viewModel.placeList)
@@ -58,6 +49,7 @@ class PlaceFragment : Fragment() {
                 placeBinding.searchPlaceEdit.addTextChangedListener { editable ->
                     val content = editable.toString()
                     if (content.isNotEmpty()) {
+                        LogUtil.d("PlaceFragment", "in MainActivity and place not saved")
                         viewModel.searchPlaces(content)
                     } else {
                         placeBinding.recyclerView.visibility = View.GONE
@@ -79,6 +71,19 @@ class PlaceFragment : Fragment() {
                         result.exceptionOrNull()?.printStackTrace()
                     }
                 })
+
+                if (activity is MainActivity && viewModel.isPlaceSaved()) {
+                    LogUtil.d("PlaceFragment", "in MainActivity and place saved")
+                    val place = viewModel.getSavedPlace()
+                    val intent = Intent(context, WeatherActivity::class.java).apply {
+                        putExtra("location_lng", place.location.lng)
+                        putExtra("location_lat", place.location.lat)
+                        putExtra("place_name", place.name)
+                    }
+                    startActivity(intent)
+                    activity?.finish()
+                    return
+                }
             }
         })
     }

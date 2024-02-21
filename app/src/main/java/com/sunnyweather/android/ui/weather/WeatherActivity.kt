@@ -1,18 +1,25 @@
 package com.sunnyweather.android.ui.weather
 
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.sunnyweather.android.LogUtil.LogUtil
+import com.sunnyweather.android.R
 import com.sunnyweather.android.databinding.ActivityWeatherBinding
 import com.sunnyweather.android.databinding.ForecastItemBinding
+import com.sunnyweather.android.logic.Repository.refreshWeather
 import com.sunnyweather.android.logic.model.Weather
 import com.sunnyweather.android.logic.model.getSky
 import java.text.SimpleDateFormat
@@ -20,6 +27,7 @@ import java.util.Locale
 
 class WeatherActivity : AppCompatActivity() {
     private lateinit var weatherBinding: ActivityWeatherBinding
+    val _weatherBinding get() = weatherBinding
 
     val viewModel by lazy { ViewModelProvider(this).get(WeatherViewModel::class.java) }
 
@@ -30,6 +38,8 @@ class WeatherActivity : AppCompatActivity() {
         weatherBinding = ActivityWeatherBinding.inflate(layoutInflater)
         setContentView(weatherBinding.root)
 
+
+        //加载天气信息
         if (viewModel.locationLng.isEmpty()) {
             viewModel.locationLng = intent.getStringExtra("location_lng") ?: ""
         }
@@ -47,9 +57,46 @@ class WeatherActivity : AppCompatActivity() {
                 Toast.makeText(this, "无法成功获取天气信息", Toast.LENGTH_SHORT).show()
                 result.exceptionOrNull()?.printStackTrace()
             }
+            weatherBinding.swipeRefresh.isRefreshing = false
         })
+
+        //刷新功能
+        weatherBinding.swipeRefresh.setColorSchemeResources(com.google.android.material.R.color.design_default_color_primary)
+        refreshWeather()
+        weatherBinding.swipeRefresh.setOnRefreshListener {
+            refreshWeather()
+        }
         LogUtil.d("WeatherActivity", "lng:${viewModel.locationLng},lat:${viewModel.locationLat}")
         viewModel.refreshWeather(viewModel.locationLng, viewModel.locationLat)
+
+
+        //滑动菜单处理
+        weatherBinding.nowLayout.navBtn.setOnClickListener {
+            weatherBinding.drawerLayout.openDrawer(GravityCompat.START)
+        }
+        weatherBinding.drawerLayout.addDrawerListener(object : DrawerLayout.DrawerListener {
+            override fun onDrawerStateChanged(newState: Int) {
+            }
+
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+            }
+
+            override fun onDrawerOpened(drawerView: View) {
+            }
+
+            override fun onDrawerClosed(drawerView: View) {
+                val manager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                manager.hideSoftInputFromWindow(
+                    drawerView.windowToken,
+                    InputMethodManager.HIDE_NOT_ALWAYS
+                )
+            }
+        })
+    }
+
+    fun refreshWeather() {
+        viewModel.refreshWeather(viewModel.locationLng, viewModel.locationLat)
+        weatherBinding.swipeRefresh.isRefreshing = true
     }
 
 
